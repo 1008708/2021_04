@@ -71,7 +71,7 @@ number_balls = 10
 startpos = Vector(300, 200)
 
 
-Startvel = [Vector(randint(-5, 5), randint(-5, 5)) for i in range(number_balls)]
+Startvel = [Vector(randint(-5, 5), randint(-10, 10)) for i in range(number_balls)]
 Balls = [Ball(startpos, Startvel[i], 10*(10-i), COLORS[randint(0, 5)]) for i in range(number_balls)]
 
 while not finished:
