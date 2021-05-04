@@ -50,7 +50,7 @@ class Ball:
     def collision(self):
         print('coll')
 
-FPS = 20
+FPS = 30
 global screen
 
 RED = (255, 0, 0)
