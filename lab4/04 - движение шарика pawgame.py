@@ -1,7 +1,7 @@
 import pygame
 from pygame.draw import *
 from random import randint
-pygame.init()
+from my_colors import *
 
 class Vector:
     '''Класс вектор:
@@ -38,9 +38,17 @@ class Ball:
         self.vel = vel
 
     def show(self):
+        '''
+        Перерисовать шарик
+        :return: пусто
+        '''
         circle(screen, self.color, self.pos.pair(), self.r)
 
     def move(self):
+        '''
+        Движение шарика со своей скоростью
+        :return:пусто
+        '''
         if (self.pos.x + self.r) > screen.get_width() or (self.pos.x - self.r) < 0:
             self.vel.x = -self.vel.x
         if (self.pos.y + self.r) > screen.get_height() or (self.pos.y - self.r) < 0:
@@ -50,41 +58,40 @@ class Ball:
     def collision(self):
         print('coll')
 
-FPS = 30
-global screen
+def my_main():
+    COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN, BLACK]
+    finish = False
+    number_balls = 10
 
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-GREEN = (0, 255, 0)
-MAGENTA = (255, 0, 255)
-CYAN = (0, 255, 255)
-BLACK = (0, 0, 0)
-COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
+    startpos = Vector(300, 200)
+    Startvel = [Vector(randint(-5, 5), randint(-10, 10)) for i in range(number_balls)]
+    Balls = [Ball(startpos, Startvel[i], 10*(10-i), COLORS[randint(0, len(COLORS)-1)]) for i in range(number_balls)]
 
-screen = pygame.display.set_mode((1200, 900))
-screen.fill('WHITE')
-pygame.display.update()
-clock = pygame.time.Clock()
-finished = False
-number_balls = 10
-startpos = Vector(300, 200)
+    while not finish:
+        clock.tick(FPS)
+        for ball in Balls:
+            ball.show()
+            ball.move()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                finish = True
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                print('Click!')
+        pygame.display.update()
+        screen.fill('WHITE')
 
+    pygame.quit()
 
-Startvel = [Vector(randint(-5, 5), randint(-10, 10)) for i in range(number_balls)]
-Balls = [Ball(startpos, Startvel[i], 10*(10-i), COLORS[randint(0, 5)]) for i in range(number_balls)]
+if __name__ == '__main__':
+    FPS = 30
+    global screen
+    Screen_width = 1200
+    Screen_height = 900
 
-while not finished:
-    clock.tick(FPS)
-    for ball in Balls:
-        ball.show()
-        ball.move()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            finished = True
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            print('Click!')
-    pygame.display.update()
+    pygame.init()
+    screen = pygame.display.set_mode((Screen_width, Screen_height))
     screen.fill('WHITE')
+    pygame.display.update()
+    clock = pygame.time.Clock()
 
-pygame.quit()
+    my_main()
