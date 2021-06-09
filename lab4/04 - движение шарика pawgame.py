@@ -70,6 +70,7 @@ class Ball:
         Перерисовать шарик
         :return: пусто
         '''
+        circle(screen, (10,10,10), self.pos.pair(), self.r+1)
         circle(screen, self.color, self.pos.pair(), self.r)
 
     def move(self):
@@ -117,14 +118,22 @@ def generate_balls(number: int):
                 while balls[i].check_collision(balls[j]) == True:
                     balls[i].pos = generate_pos()
                     j = 0
-
     return balls
+
+def mouse_push(m_pos, Balls):
+    index = -1
+    mouse_pos = Vector(m_pos[0], m_pos[1])
+    for i, ball in enumerate(Balls):
+        if ball.pos.distance(mouse_pos) < ball.r:
+            index = i
+    return index
+
 
 def my_main():
     finish = False
     FPS = 40
     clock = pygame.time.Clock()
-    number_balls = 10
+    number_balls = 5
 
     score_table = Score()
     Balls = generate_balls(number_balls)
@@ -132,19 +141,29 @@ def my_main():
     while not finish:
         clock.tick(FPS)
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or len(Balls) == 0:
                 finish = True
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                print('Click!')
+                mouse_pos = pygame.mouse.get_pos()
+                i_ball = mouse_push(mouse_pos, Balls)
+                if i_ball != -1:
+                    print(mouse_pos, mouse_push(mouse_pos, Balls))
+                    Balls.pop(i_ball)
+                else:
+                    ball_speed = Vector(randint(-10, 10), randint(-10, 10))
+                    radius = randint(10, 50)
+                    startpos =  Vector(mouse_pos[0], mouse_pos[1])
+                    new_ball = Ball(startpos, ball_speed, radius, gerenerate_color())
+                    Balls.append(new_ball)
 
         for i, ball in enumerate(Balls):
             ball.move()
             ball.show()
-
             for j in range(0, i):
                 if ball.check_collision(Balls[j]):
                     ball.collade(Balls[j])
                     score_table.math()
+
 
         pygame.display.flip()
         screen.fill('GRAY')
