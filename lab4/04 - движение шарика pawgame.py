@@ -1,7 +1,6 @@
 import pygame
 from pygame.draw import *
 from random import randint
-#from math import
 
 global screen, screen_width, screen_height
 screen_width = 1200
@@ -31,7 +30,6 @@ class Score:
         screen.blit(score_surf[1], [10, 30])
         screen.blit(score_surf[2], [screen_width - 400, 10])
         screen.blit(score_surf[3], [screen_width - 400, 30])
-
 
 class Vector:
     '''Класс вектор:
@@ -138,6 +136,10 @@ class Ballgrav(Ball):
 
     def move(self, time=1):
         self.check_corners()
+        if 0 < abs(self.vel.x) < 0.1:
+            self.vel.x = 0
+        if 0 < abs(self.vel.y) < 0.1:
+            self.vel.y = 0
         self.vel += self.gravity
         self.pos += self.vel * time
 
@@ -149,7 +151,6 @@ class Game_obj:
         self.Balls = []
         self.generate_balls(self.number_of_balls)
         self.table = Score(self.number_of_balls)
-
 
     def run(self):
         handle_code = self.handle()
@@ -239,17 +240,14 @@ class Game_obj:
 
     def check_collision(self, index1, index2):
         check = False
-        norm = self.Balls[index1].vel.scalar_dot(self.Balls[index2].vel)
-        if norm:
-            min_lenght = (self.Balls[index1].r + self.Balls[index2].r)**2
-            real_length = self.Balls[index1].pos.distance_2(self.Balls[index2].pos)
+        min_lenght = (self.Balls[index1].r + self.Balls[index2].r)**2
+        real_length = self.Balls[index1].pos.distance_2(self.Balls[index2].pos)
 
-            if real_length != 0 and real_length*1.035 <= min_lenght:
-                check = True
-                k = real_length**1.035/min_lenght
-                self.Balls[index1].pos -= self.Balls[index1].vel*k
-                self.Balls[index2].pos -= self.Balls[index2].vel*k
-
+        if real_length != 0 and real_length*1.035 <= min_lenght:
+            check = True
+            k = real_length**1.035/min_lenght
+            self.Balls[index1].pos -= self.Balls[index1].vel*k
+            self.Balls[index2].pos -= self.Balls[index2].vel*k
         return check
 
     def collade(self, index1, index2):
@@ -267,7 +265,6 @@ class Game_obj:
 
         self.Balls[index1].vel = self.Balls[index1].vel+v_new
         self.Balls[index2].vel = self.Balls[index2].vel-v_new
-
 
 if __name__ == '__main__':
     FPS = 30
