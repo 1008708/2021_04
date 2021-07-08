@@ -11,19 +11,27 @@ class Score:
     '''
     Score Table
     '''
-    def __init__(self):
-        self.b_col_score = 0
+    def __init__(self, all_balls):
+        self.new_ball = 0
+        self.all_balls = all_balls
         self.font = pygame.font.SysFont("dejavusansmono", 25)
 
     def math(self, score=1):
-        self.b_col_score +=score
+        self.new_ball += score
+        self.all_balls += score
 
     def show(self):
         score_surf = []
-        score_surf.append(self.font.render("Collide: {}".format(self.b_col_score), True, 'WHITE'))
-        #score_surf.append(self.font.render("Balls used: {}".format(self.b_used), True, WHITE))
-        #score_surf.append(self.font.render("Total: {}".format(self.score()), True, RED))
+        score_surf.append(self.font.render("All balls: {}".format(self.all_balls), True, (0,0,0)))
+        score_surf.append(self.font.render("New ball used: {}".format(self.new_ball), True, (0,0,0)))
+        score_surf.append(self.font.render("Rigth button - new game", True, (200,0,0)))
+        score_surf.append(self.font.render("Left button - del/new ball", True, (200,0,0)))
+
         screen.blit(score_surf[0], [10, 10])
+        screen.blit(score_surf[1], [10, 30])
+        screen.blit(score_surf[2], [screen_width - 400, 10])
+        screen.blit(score_surf[3], [screen_width - 400, 30])
+
 
 class Vector:
     '''Класс вектор:
@@ -35,23 +43,30 @@ class Vector:
     def pair(self):
         return (round(self.x), round(self.y))
 
-    def distance(self, other):
+    def distance_2(self, other):
         return (pow(self.x - other.x, 2) + pow(self.y - other.y, 2))
 
+    def scalar_dot(self, other):
+        return (self.x*other.x + self.y*other.y)
+
+    def normalize(self):
+        l = (pow(self.x, 2) + pow(self.y, 2))**0.5
+        return Vector(self.x/l, self.y/l)
+
     def __add__(self, other):
-        return Vector (self.x + other.x, self.y + other.y)
+        return Vector(self.x + other.x, self.y + other.y)
 
     def __sub__(self, other):
-        return Vector (self.x - other.x, self.y - other.y)
+        return Vector(self.x - other.x, self.y - other.y)
 
     def __mul__(self, i):
-        return Vector (self.x*i, self.y*i)
+        return Vector(self.x*i, self.y*i)
 
     def __lt__(self, other):
         return (self.x < other.x) and (self.y < other.y)
 
     def __neg__(self):
-        return Vector (-self.x, -self.y)
+        return Vector(-self.x, -self.y)
 
 class Ball:
     '''
@@ -60,13 +75,14 @@ class Ball:
     -скоростью vx, vy типа Vector
     -радиусом r
     -цветом color
+    -упругость elastity
+    -масса m
     '''
     def __init__(self, pos, vel, r=10, color=(0, 0, 0)):
         self.color = color
         self.r = r
         self.pos = pos
         self.vel = vel
-        self.alive = True
         self.elastity = 0.95
         self.m = 1
 
@@ -112,20 +128,18 @@ class Ball:
         self.pos += self.vel * time
 
 class Ballgrav(Ball):
+    '''
+    Наследник от Ball с гравитацией
+    -гравитация gravity - типа Vector
+    '''
     def __init__(self, pos, vel, r = 10, color = (0, 0, 0)):
         super().__init__(pos, vel, r, color)
         self.gravity = Vector(0, 2)
 
     def move(self, time=1):
         self.check_corners()
-        if 0 < abs(self.vel.x) < 0.1:
-            self.vel.x = 0
-        if 0 < abs(self.vel.y) < 0.1:
-            self.vel.y = 0
-
         self.vel += self.gravity
         self.pos += self.vel * time
-
 
 class Game_obj:
     def __init__(self, number):
@@ -133,18 +147,19 @@ class Game_obj:
         self.finish_game = False
         self.mouse_pos = Vector()
         self.Balls = []
-        self.score_table = Score()
         self.generate_balls(self.number_of_balls)
+        self.table = Score(self.number_of_balls)
+
 
     def run(self):
         handle_code = self.handle()
         if handle_code == 1:
             index = self.mouse_push1()
             if index != -1:
-                self.alive = False
                 self.Balls.pop(index)
             else:
                 self.generate_ballgrav()
+                self.table.math(1)
 
         if handle_code == 3:
             number = self.number_of_balls
@@ -158,10 +173,8 @@ class Game_obj:
             for j in range(i, len(self.Balls)):
                 if self.check_collision(i, j):
                     self.collade(i, j)
-                    ball.move()
-
-            #score_table.math()
-    #    score_table.show()
+        self.table.all_balls = len(self.Balls)
+        self.table.show()
 
     def generate_pos(self):
         return Vector(randint(60, screen_width-60), randint(60, screen_height-60))
@@ -200,7 +213,7 @@ class Game_obj:
         0 - нет событий
         1 - кнопка левая мыши - попасть по шарику
         3 - кнопка правая мыши - начать новую игру
-        выход - True in .finish_game
+        выход - .finish_game = True
         :return: код события
         '''
         handle_code = 0
@@ -220,41 +233,45 @@ class Game_obj:
     def mouse_push1(self):
         index = -1
         for i, ball in enumerate(self.Balls):
-            if ball.pos.distance(self.mouse_pos) < ball.r**2:
+            if ball.pos.distance_2(self.mouse_pos) < ball.r**2:
                index = i
         return index
 
     def check_collision(self, index1, index2):
         check = False
+        norm = self.Balls[index1].vel.scalar_dot(self.Balls[index2].vel)
+        if norm:
+            min_lenght = (self.Balls[index1].r + self.Balls[index2].r)**2
+            real_length = self.Balls[index1].pos.distance_2(self.Balls[index2].pos)
 
-        min_lenght = (self.Balls[index1].r + self.Balls[index2].r)**2
-        real_length = self.Balls[index1].pos.distance(self.Balls[index2].pos)
-
-        if real_length != 0 and real_length*1.035 <= min_lenght:
-            check = True
-            self.Balls[index1].pos -= self.Balls[index1].vel
-            self.Balls[index2].pos -= self.Balls[index2].vel
-            rl = self.Balls[index1].pos.distance(self.Balls[index2].pos)
+            if real_length != 0 and real_length*1.035 <= min_lenght:
+                check = True
+                k = real_length**1.035/min_lenght
+                self.Balls[index1].pos -= self.Balls[index1].vel*k
+                self.Balls[index2].pos -= self.Balls[index2].vel*k
 
         return check
 
     def collade(self, index1, index2):
-        vel1_new, vel2_new = Vector(), Vector()
-        k_massa1 = (self.Balls[index1].m-self.Balls[index2].m * self.Balls[index2].elastity) / (self.Balls[index1].m+self.Balls[index2].m)
-        k_massa2 = (1+self.Balls[index2].elastity)*self.Balls[index2].m / (self.Balls[index1].m+self.Balls[index2].m)
-        vel1_new = self.Balls[index1].vel*k_massa1 + self.Balls[index2].vel*k_massa2
+        v_new = Vector()
+        delta_vel = Vector()
 
-        k_massa1 = (self.Balls[index2].m-self.Balls[index1].m * self.Balls[index1].elastity) / (self.Balls[index1].m+self.Balls[index2].m)
-        k_massa2 = (1+self.Balls[index1].elastity)*self.Balls[index1].m / (self.Balls[index1].m + self.Balls[index2].m)
-        vel2_new = self.Balls[index2].vel*k_massa1 + self.Balls[index1].vel*k_massa2
+        k_massa1 = -1*(1+self.Balls[index2].elastity)*self.Balls[index2].m/(self.Balls[index1].m+self.Balls[index2].m)
+        k_massa2 = (1+self.Balls[index1].elastity)*self.Balls[index1].m/(self.Balls[index1].m+self.Balls[index2].m)
+        delta_vel = self.Balls[index1].vel*k_massa1 + self.Balls[index2].vel*k_massa2
 
-        self.Balls[index1].vel = vel1_new
-        self.Balls[index2].vel = vel2_new
+        between_ball = Vector(self.Balls[index2].pos.x-self.Balls[index1].pos.x, self.Balls[index2].pos.y-self.Balls[index1].pos.y)
+        normal = between_ball.normalize()
+
+        v_new = normal * delta_vel.scalar_dot(normal)
+
+        self.Balls[index1].vel = self.Balls[index1].vel+v_new
+        self.Balls[index2].vel = self.Balls[index2].vel-v_new
 
 
 if __name__ == '__main__':
     FPS = 30
-    number_balls = 5
+    number_balls = 7
 
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
